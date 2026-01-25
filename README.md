@@ -1,0 +1,2 @@
+# GmailReader
+Multipurpose Gmail Reader
