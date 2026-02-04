@@ -1,0 +1,12 @@
+{
+  "Monto": 1234567.89,
+  "Currency": "<currency>",
+  "Impuestos": null,
+  "Medio": "<meanofpayment>",
+  "Banco": "<bank>",
+  "DateTime": "mm/dd/yyyy hh:MM:mm",
+  "Concepto": "<concept>",
+  "Type": "<expense-type>",
+  "Comments": [],
+  "GmailMessageId": "<gmail-message-id>"
+}

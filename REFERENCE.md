@@ -4,9 +4,10 @@
 
 - https://developers.google.com/resources/api-libraries/documentation/gmail/v1/python/latest/gmail_v1.users.labels.html
 
-- https://developers.google.com/workspace/gmail/api/reference/rest
+- https://developers.google.com/workspace/gmail/api/guides/labels
 - https://developers.google.com/workspace/gmail/api/quickstart/python
 - https://developers.google.com/workspace/gmail/api/reference/quota
+- https://developers.google.com/workspace/gmail/api/reference/rest
 
 - https://docs.cloud.google.com/python/docs/setup
 
@@ -30,6 +31,7 @@
 - https://stackoverflow.com/questions/76532429/typehint-googleapiclient-discovery-build-returning-value
 - https://stackoverflow.com/questions/69138209/how-to-access-parent-class-instance-attribute-from-child-class-instance
 - https://stackoverflow.com/questions/52725278/during-handling-of-the-above-exception-another-exception-occurred
+- https://stackoverflow.com/questions/10919569/install-a-module-using-pip-for-specific-python-version
 
 - https://pypi.org/classifiers/
 - https://code.visualstudio.com/docs/python/formatting

@@ -1,5 +1,4 @@
-from typing import Any, List
-
+from typing import Dict, List
 
 class GmailUsers():
     """Google API Client discovery - Resource wrapper/Namespace.
@@ -49,8 +48,9 @@ class GmailUsers():
             self,
             search_query: str = "",
             max_results: int = 5,
-            label_ids: list = None
-        ) -> List:
+            label_ids: list = None,
+            pageToken: str = None
+        ) -> Dict:
             """Fetches a list of user messages from Gmail.
 
             Args:
@@ -61,14 +61,13 @@ class GmailUsers():
             Returns:    
                 A list of message objects.
             """
-            messages_res = self.parent.service.users().messages().list(
+            return self.parent.service.users().messages().list(
                 userId='me',
                 maxResults=max_results,
                 labelIds=label_ids,
-                q=search_query
+                q=search_query,
+                pageToken=pageToken,
             ).execute()
-            messages = messages_res.get('messages', [])
-            return messages
 
         def get(
             self,
@@ -86,9 +85,8 @@ class GmailUsers():
             Returns:    
                 A message object.
             """
-            message = self.parent.service.users().messages().get(
+            return self.parent.service.users().messages().get(
                 userId=userId,
                 id=id,
                 format=format
             ).execute()
-            return message

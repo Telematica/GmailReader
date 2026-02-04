@@ -50,7 +50,7 @@ class GoogleApis():
                         scopes
                     )
                     creds = flow.run_local_server(port=0)
-                    Utils.write_json_file(jsonStr=creds.to_json(), filename=token_file)
+                    Utils.write_json_file(json_str=creds.to_json(), filename=token_file)
             service: Resource = build(service_name, version, credentials=creds)
         except HttpError as error:
             raise TypeError(f"HTTP error during service building: {error}")
