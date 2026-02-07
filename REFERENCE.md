@@ -4,6 +4,7 @@
 
 - https://developers.google.com/resources/api-libraries/documentation/gmail/v1/python/latest/gmail_v1.users.labels.html
 
+- https://developers.google.com/workspace/gmail/api/guides/filtering
 - https://developers.google.com/workspace/gmail/api/guides/labels
 - https://developers.google.com/workspace/gmail/api/quickstart/python
 - https://developers.google.com/workspace/gmail/api/reference/quota

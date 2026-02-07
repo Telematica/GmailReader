@@ -5,8 +5,9 @@ GOOGLE_SERVICES = {
 LABELS_FILE_PATH = './secrets/labels.json'
 PROCESSED_MESSAGES_FILE_PATH = './secrets/processed-messages.json'
 MAX_MESSAGE_RESULTS = 500
+MAX_MESSAGE_BATCH_MODIFY = 1000
 SCOPES = {
-    # https://mail.google.com/
+    'gmail': 'https://mail.google.com/',
     'compose': 'https://www.googleapis.com/auth/gmail.compose',
     'metadata': 'https://www.googleapis.com/auth/gmail.metadata',
     'modify': 'https://www.googleapis.com/auth/gmail.modify',
@@ -20,16 +21,49 @@ SELECTORS = {
         'time': 'body > table > tbody > tr > td > div.root-container > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr:nth-child(3) > td:nth-child(2) > table > tr > td:nth-child(2) > table > tr > td:nth-child(1) > div:nth-child(1) > strong > span:nth-child(1)',
         'time2': 'body > table > tbody > tr > td > div.root-container > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr:nth-child(3) > td:nth-child(2) > table > tr > td:nth-child(2) > table > tr > td:nth-child(1) > div:nth-child(1) > strong > span:nth-child(1)',
         'comments': 'body > table > tbody > tr > td > div.root-container > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > table > tbody > tr > td > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > table > tbody > tr:nth-child(3) > td:nth-child(2) > table > tr > td:nth-child(2) > table > tr > td:nth-child(1) > div:nth-child(2) > span'
+    },
+    # Rappi/Pedidos
+    'Label_431': {
+        'normal': {
+            'amount': 'body#order > center:nth-child(2) > div > table > tr > td > table > tr > td > table > tr > td > table > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > div:nth-child(1) > table > tr > td:nth-child(2) > span',
+            'date': 'body#order > center:nth-child(2) > div > table > tr > td > table > tr > td > table > tr > td > table > tr > td > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td > table:nth-child(2) > tbody > tr > td > div > div > div > div:nth-child(3) > table > tr > td > h5',
+            'comments1': ':nth-child(1 of h5)',
+            'comments2': ':nth-child(1 of h6)'
+        },
+        'express': {
+            'amount': 'body#order > center:nth-child(2) > div > table > tr > td > table > tr > td > table > tr > td > table > tr > td > table > tbody > tr > td > table:nth-child(3) > tbody > tr > td > table > tbody > tr > td > div:nth-child(1) > table > tr > td:nth-child(2) > span',
+            'date': 'body#order > center:nth-child(2) > div > table > tr > td > table > tr > td > table > tr > td > table > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > div > div > div > div:nth-child(2) > table > tr > td > h5'
+        }
     }
 }
 TOKEN_FILE_PATH = './secrets/token.json'
-
+ES_TO_EN_MONTHS = {
+    "ene": "January",
+    "feb": "February",
+    "mar": "March",
+    "abr": "April",
+    "may": "May",
+    "jun": "June",
+    "jul": "July",
+    "ago": "August",
+    "sep": "September",
+    "oct": "October",
+    "nov": "November",
+    "dic": "December",
+}
 QUERIES = {
     'label:promotions or category:promotions after:2025/12/31',
     'label:social or category:social after:2025/12/31',
     'after:2026/01/31 before:2026/02/28 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
     'after:2025/12/31 before:2026/02/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
-    'after:2025/11/30 before:2026/01/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")'
-    'after:2025/10/31 before:2025/12/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")'
-    'after:2025/09/30 before:2025/11/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")'
+    'after:2025/11/30 before:2026/01/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
+    'after:2025/10/31 before:2025/12/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
+    'after:2025/09/30 before:2025/11/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
+    'after:1756706399 before:1759298400 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")', # 2025/08/31 00:00:00 - 2025/10/01 00:00:00
+    
+    
+    'after:1735711199 before:1767247200 label:Rappi/Pedidos', # 2024/12/31 23:59:59 - 2026/01/01 00:00:00
+    
+    'after:1767247199 before:1769925600 label:Rappi/Pedidos', # 2025/12/31 23:59:59 - 2026/02/01 00:00:00
+    'after:1769925599 before:1772344800 label:Rappi/Pedidos', # 2026/01/31 23:59:59 - 2026/03/01 00:00:00
 }

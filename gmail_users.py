@@ -1,23 +1,28 @@
 from typing import Dict, List
 
+from constants import MAX_MESSAGE_BATCH_MODIFY
+
+
 class GmailUsers():
     """Google API Client discovery - Resource wrapper/Namespace.
-    
+
     Provides methods to interact with Gmail Users resources.
     """
+
     def __init__(self, service) -> None:
         self.service = service
         self.labels = self.Labels(self)
         self.messages = self.Messages(self)
-        
+
     class Labels():
         """Nested class for Gmail Users Labels resource.
 
         Provides methods to interact with Gmail Users Labels resources.
         """
+
         def __init__(self, parent) -> None:
             self.parent = parent
-    
+
         def list(
             self,
             sort_order: str = 'id',
@@ -33,16 +38,41 @@ class GmailUsers():
             """
             results = self.parent.service.users().labels().list(userId=userId).execute()
             labels = results.get('labels', [])
-            sorted_labels = sorted(labels, key=lambda label: label[sort_order].lower())
+            sorted_labels = sorted(
+                labels, key=lambda label: label[sort_order].lower())
             return sorted_labels
 
     class Messages():
         """Nested class for Gmail Users Messages resource.
-        
+
         Provides methods to interact with Gmail Users Messages resources.
         """
+
         def __init__(self, parent) -> None:
             self.parent = parent
+
+        def batchModify(
+            self,
+            add_label_ids: list = None,
+            remove_label_ids: list = None,
+            message_ids: list = None,
+            userId: str = 'me',
+        ) -> Dict:
+            if len(message_ids) > MAX_MESSAGE_BATCH_MODIFY:
+                raise ValueError(
+                    f'More than {MAX_MESSAGE_BATCH_MODIFY} messages cannot be processed, ID limit: {len(message_ids)}')
+
+            return self.parent.service.users().messages().batchModify(
+                userId=userId,
+                body={
+                    # A list of label IDs to add to messages.
+                    "addLabelIds": add_label_ids,
+                    # The IDs of the messages to modify. There is a limit of 1000 ids per request.
+                    "ids": message_ids,
+                    # A list of label IDs to remove from messages.
+                    "removeLabelIds": remove_label_ids,
+                }
+            ).execute()
 
         def list(
             self,
