@@ -33,6 +33,9 @@ SELECTORS = {
         'express': {
             'amount': 'body#order > center:nth-child(2) > div > table > tr > td > table > tr > td > table > tr > td > table > tr > td > table > tbody > tr > td > table:nth-child(3) > tbody > tr > td > table > tbody > tr > td > div:nth-child(1) > table > tr > td:nth-child(2) > span',
             'date': 'body#order > center:nth-child(2) > div > table > tr > td > table > tr > td > table > tr > td > table > tr > td > table > tbody > tr > td > table:nth-child(2) > tbody > tr > td > table > tbody > tr > td > div > div > div > div:nth-child(2) > table > tr > td > h5'
+        },
+        'corner_case_2025': {
+            'date': 'body#order > center:nth-child(2) > div > table > tr > td > table > tr > td > table > tr > td > table > tr > td > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td > table > tbody > tr > td > div > div > div:nth-child(4) > table > tr > td:nth-child(2) > h5'
         }
     }
 }
@@ -62,8 +65,12 @@ QUERIES = {
     'after:1756706399 before:1759298400 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")', # 2025/08/31 00:00:00 - 2025/10/01 00:00:00
     
     
-    'after:1735711199 before:1767247200 label:Rappi/Pedidos', # 2024/12/31 23:59:59 - 2026/01/01 00:00:00
+    'after:1735711199 before:1767247200 label:rappi-pedidos', # 2024/12/31 23:59:59 - 2026/01/01 00:00:00
+    'after:1767247199 before:1798783200 label:rappi-pedidos', # 2025/12/31 23:59:59 - 2027/01/01 00:00:00
+
+    'after:1735711199 before:1767247200 label:INBOX has:nouserlabels', # 2025/12/31 23:59:59 - 2027/01/01 00:00:00
+    'after:1767247199 before:1798783200 label:INBOX has:nouserlabels', # 2025/12/31 23:59:59 - 2027/01/01 00:00:00
     
-    'after:1767247199 before:1769925600 label:Rappi/Pedidos', # 2025/12/31 23:59:59 - 2026/02/01 00:00:00
-    'after:1769925599 before:1772344800 label:Rappi/Pedidos', # 2026/01/31 23:59:59 - 2026/03/01 00:00:00
+    'after:1767247199 before:1769925600 label:rappi-pedidos', # 2025/12/31 23:59:59 - 2026/02/01 00:00:00
+    'after:1769925599 before:1772344800 label:rappi-pedidos', # 2026/01/31 23:59:59 - 2026/03/01 00:00:00
 }

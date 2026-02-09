@@ -12,6 +12,10 @@
 
 - https://docs.cloud.google.com/python/docs/setup
 
+
+### Refine searches in Gmail
+- https://support.google.com/mail/answer/7190?hl=en
+
 ## Python Docs
 
 - https://docs.python.org/3/library/json.html

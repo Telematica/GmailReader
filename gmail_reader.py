@@ -1,3 +1,4 @@
+from ast import arg
 from datetime import datetime
 import json
 from math import exp
@@ -7,31 +8,117 @@ from google_apis import GoogleApis
 from gmail_users import GmailUsers
 from constants import ES_TO_EN_MONTHS, GOOGLE_SERVICES, LABELS_FILE_PATH, PROCESSED_MESSAGES_FILE_PATH, SCOPES, CREDENTIALS_FILE_PATH, TOKEN_FILE_PATH, MAX_MESSAGE_RESULTS, SELECTORS
 from utils import Utils
-
+from datetime import date, timedelta
+import sys
 
 def main() -> None:
-    labels_dict = {label["name"]: label["id"] for label in Utils.load_json_file(
-        file_path=LABELS_FILE_PATH)}  # dictionary comprehension
-    scrap_rappi_label(
-        search_query='after:1735711199 before:1767247200',
-        label_ids=[labels_dict.get("Rappi/Pedidos")],
-        mark_as_read_emails=False,
-        print_json_output=False
-    )
+    arguments = sys.argv[1:]  # Get command-line arguments excluding the script name
+    
+    if "--all" in arguments:
+        count_inbox_unread_messages()
+        return
+    
+    if "--today" in arguments:
+        count_daily_received_unread_messages()
+        return
+
+    if "--rappi" in arguments:
+        labels_dict = {label["name"]: label["id"] for label in Utils.load_json_file(
+            file_path=LABELS_FILE_PATH)}  # dictionary comprehension
+        scrap_rappi_label(
+            search_query='after:1767247199 before:1798783200',
+            label_ids=[labels_dict.get("Rappi/Pedidos")],
+            mark_as_read_emails=False,
+            print_json_output=False
+        )
+    
     # scrap_didi_label(
     #   search_query='after:1756706399 before:1759298400 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")'
     #   label_ids=[labels_dict.get("DiDi")]
     # )
     # export_message_html_to_file_by_message_id(
     #     file_path='./email-templates/rappi-corner-case-2025.html',
-    #     message_id="19786bd88f52061c"
+    #     message_id="<message_id_here>"
     # )
     # write_labels_to_json_file()
     # print(
     #    Utils.get_time_zoned_epoch_datetime('2025/12/31 23:59:59'),
-    #    Utils.get_time_zoned_epoch_datetime('2026/02/01 00:00:00')
+    #    Utils.get_time_zoned_epoch_datetime('2027/01/01 00:00:00')
     # )
+    
+def count_daily_received_unread_messages() -> None:
+    service = GoogleApis.authenticate_and_build_google_service(
+        service_name=GOOGLE_SERVICES['gmail'],
+        scopes=[SCOPES["modify"], SCOPES["readonly"]],
+        version='v1',
+        credentials_file=CREDENTIALS_FILE_PATH,
+        token_file=TOKEN_FILE_PATH,
+    )
+    messages = GmailUsers(service).messages
+    page_token = '0'
+    total_messages = 0
+    total_messages_unread = 0
+    today = date.today().strftime('%Y/%m/%d')
+    tomorrow = (date.today() + timedelta(days=1)).strftime('%Y/%m/%d')
+    yesterday = (date.today() - timedelta(days=1)).strftime('%Y/%m/%d')
+    yesterday = str(Utils.get_time_zoned_epoch_datetime(f'{yesterday} 23:59:59')).replace(".0", "")
+    tomorrow = str(Utils.get_time_zoned_epoch_datetime(f'{tomorrow} 00:00:00')).replace(".0", "")
 
+    while page_token is not None:
+        response = messages.list(
+            search_query=f'after:{yesterday} before:{tomorrow}', # label:(INBOX AND UNREAD)
+            label_ids=['INBOX', 'UNREAD'],
+            max_results=MAX_MESSAGE_RESULTS,
+            pageToken=page_token
+        )
+        messages_list = response.get('messages', [])
+        total_messages_unread += len(messages_list)
+        page_token = response.get('nextPageToken', None)
+        # print("Next Page Token:", page_token)
+        # print("Messages:", messages_list)
+        # print("Number of messages found (partial batch):", len(messages_list))
+    
+    page_token = '0'
+    
+    while page_token is not None:
+        response = messages.list(
+            search_query=f'after:{yesterday} before:{tomorrow}', # label:(INBOX AND UNREAD)
+            # label_ids=['INBOX'],
+            max_results=MAX_MESSAGE_RESULTS,
+            pageToken=page_token
+        )
+        messages_list = response.get('messages', [])
+        total_messages += len(messages_list)
+        page_token = response.get('nextPageToken', None)
+
+    print("Total messages received today", today, ":", total_messages)
+    print("Total unread messages received today", today, ":", total_messages_unread)
+
+def count_inbox_unread_messages() -> None:
+    service = GoogleApis.authenticate_and_build_google_service(
+        service_name=GOOGLE_SERVICES['gmail'],
+        scopes=[SCOPES["readonly"]],
+        version='v1',
+        credentials_file=CREDENTIALS_FILE_PATH,
+        token_file=TOKEN_FILE_PATH,
+    )
+    messages = GmailUsers(service).messages
+    page_token = None
+    total_messages = 0
+    
+    while page_token is not None or total_messages == 0:
+        response = messages.list(
+            # search_query='label:(INBOX AND UNREAD)',
+            label_ids=['INBOX', 'UNREAD'],
+            max_results=MAX_MESSAGE_RESULTS,
+            pageToken=page_token
+        )
+        messages_list = response.get('messages', [])
+        total_messages += len(messages_list)
+        page_token = response.get('nextPageToken', None)
+        print("Next Page Token:", page_token)
+        print("Number of messages found (partial batch):", len(messages_list))
+    print("Total unread messages in INBOX:", total_messages)
 
 def scrap_rappi_label(
     search_query: str,
@@ -100,11 +187,16 @@ def scrap_rappi_label(
         # Step []: Scrap HTML Document using selectors to find data
         selector_express = SELECTORS['Label_431']['express']
         selector_normal = SELECTORS['Label_431']['normal']
+        selector_corner_case_2025 = SELECTORS['Label_431']['corner_case_2025']
         amount = soup.select(
             selector_express['amount'] + ',' + selector_normal["amount"])
 
         if len(amount) == 0 and "ha sido cancelado" in subject:
             print(f"Mensaje de Pedido Cancelado, no se procesará: {msg['id']}")
+            skipped_messages += 1
+            continue
+        elif "Ya puedes ver tu factura Turbo" == subject:
+            print(f"Mensaje de Factura Turbo, omitido: {msg['id']}")
             skipped_messages += 1
             continue
         elif len(amount) == 0:
@@ -113,7 +205,7 @@ def scrap_rappi_label(
             skipped_messages += 1
             continue
 
-        def replacer(match):
+        def replacer(match) -> str:
             word = ES_TO_EN_MONTHS[match.group(0)]
             return word
         regex = "|".join(ES_TO_EN_MONTHS.keys())
@@ -121,11 +213,13 @@ def scrap_rappi_label(
 
         amount = amount[0].text.strip()
         date = soup.select(
-            selector_express['date'] + ',' + selector_normal["date"])[0].text.strip()
+            selector_express['date'] + ',' + selector_normal["date"] + ',' + selector_corner_case_2025["date"])[0].text.strip()
         date = datetime.strptime(re.sub(regex, replacer, date.replace(
             ".", f" {header_date_year}").strip()), "%d %B %Y %I:%M %p") if "." in date else date
         comments1 = soup.select(selector_normal['comments1'])[0].text.strip()
         comments2 = soup.select(selector_normal['comments2'])[0].text.strip()
+        bank = 'Banregio' # @TODO: Extract bank from comments or other data in the email, currently hardcoded as Banregio for all transactions
+        mean_of_payment = 'Tarjeta de Crédito' # @TODO: Extract mean of payment from comments or other data in the email, currently hardcoded as Tarjeta de Crédito for all transactions
 
         if print_message_log:
             print("Amount:", amount)
@@ -138,8 +232,8 @@ def scrap_rappi_label(
             'Monto': float(amount.replace('$', '').replace(',', '').strip()),
             'Currency': 'MXN',
             'Impuestos': None,
-            'Medio': 'Tarjeta de Crédito',
-            'Banco': 'Banregio',
+            'Medio': mean_of_payment,
+            'Banco': bank,
             'DateTime': Utils.format_date_string(f'{date}', '%m/%d/%Y %H:%M:%S'),
             'Concepto': 'Rappi',
             'Type': 'food',
