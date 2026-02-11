@@ -1,4 +1,5 @@
 import os.path
+from google.auth.credentials import TokenState
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -6,9 +7,10 @@ from googleapiclient.discovery import build, Resource
 from googleapiclient.errors import HttpError
 from utils import Utils
 
+
 class GoogleApis():
     """Google API Client discovery wrapper.
-    
+
     Provides methods to authenticate and build Google API services.
     """
     @staticmethod
@@ -21,7 +23,7 @@ class GoogleApis():
     ) -> Resource:
         """Provides a function to authenticate and build a Google API service.
         Reference: https://github.com/googleapis/google-api-python-client/blob/main/docs/oauth-installed.md
-        
+
         Args:
             service_name: the name of the Google API service.
             scopes: the list of scopes to request.
@@ -38,19 +40,21 @@ class GoogleApis():
         try:
             # Check stored credentials
             if os.path.exists(token_file) and not os.path.getsize(token_file) == 0 and Utils.is_valid_json(token_file):
-                creds = Credentials.from_authorized_user_file(token_file, scopes)
-            
-            # Check if credentials are valid and refresh if necessary    
-            if not creds or not creds.valid:
-                if creds and creds.expired and creds.refresh_token:
+                creds = Credentials.from_authorized_user_file(
+                    token_file, scopes)
+
+            # Check if credentials are valid and refresh if necessary
+            if not creds or creds.token_state == TokenState.INVALID:
+                if creds and creds.refresh_token:
                     creds.refresh(Request())
                 else:
                     flow: InstalledAppFlow = InstalledAppFlow.from_client_secrets_file(
-                        credentials_file, 
+                        credentials_file,
                         scopes
                     )
                     creds = flow.run_local_server(port=0)
-                    Utils.write_json_file(json_str=creds.to_json(), filename=token_file)
+                    Utils.write_json_file(
+                        json_str=creds.to_json(), filename=token_file)
             service: Resource = build(service_name, version, credentials=creds)
         except HttpError as error:
             raise TypeError(f"HTTP error during service building: {error}")
