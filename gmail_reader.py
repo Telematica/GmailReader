@@ -1,7 +1,5 @@
-from ast import arg
 from datetime import datetime
 import json
-from math import exp
 import re
 from bs4 import BeautifulSoup
 from google_apis import GoogleApis
@@ -11,13 +9,15 @@ from utils import Utils
 from datetime import date, timedelta
 import sys
 
+
 def main() -> None:
-    arguments = sys.argv[1:]  # Get command-line arguments excluding the script name
-    
+    # Get command-line arguments excluding the script name
+    arguments = sys.argv[1:]
+
     if "--all" in arguments:
         count_inbox_unread_messages()
         return
-    
+
     if "--today" in arguments:
         count_daily_received_unread_messages()
         return
@@ -31,22 +31,41 @@ def main() -> None:
             mark_as_read_emails=False,
             print_json_output=False
         )
-    
-    # scrap_didi_label(
-    #   search_query='after:1756706399 before:1759298400 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")'
-    #   label_ids=[labels_dict.get("DiDi")]
-    # )
-    # export_message_html_to_file_by_message_id(
-    #     file_path='./email-templates/rappi-corner-case-2025.html',
-    #     message_id="<message_id_here>"
-    # )
-    # write_labels_to_json_file()
-    # print(
-    #    Utils.get_time_zoned_epoch_datetime('2025/12/31 23:59:59'),
-    #    Utils.get_time_zoned_epoch_datetime('2027/01/01 00:00:00')
-    # )
-    
+        return
+
+    if "--date-range" in arguments:
+        print(
+            Utils.get_time_zoned_epoch_datetime('2020/12/31 23:59:59'),
+            Utils.get_time_zoned_epoch_datetime('2022/01/01 00:00:00')
+        )
+        return
+
+    if "--didi" in arguments:
+        labels_dict = {label["name"]: label["id"] for label in Utils.load_json_file(
+            file_path=LABELS_FILE_PATH)}
+        scrap_didi_label(
+            search_query='after:1756706399 before:1759298400 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
+            label_ids=[labels_dict.get("DiDi")]
+        )
+        return
+
+    if "--export-html" in arguments:
+        if "--message-id" not in arguments:
+            print("Error: --message-id flag provided but no message ID specified.")
+            return
+        export_message_html_to_file_by_message_id(
+            file_path='./email-templates/rappi-corner-case-2025.html',
+            message_id=arguments[arguments.index("--message-id") + 1]
+        )
+        return
+
+    if "--export-labels" in arguments:
+        write_labels_to_json_file()
+        return
+
+
 def count_daily_received_unread_messages() -> None:
+    # Step [1]: Get the Google API Gmail service instance
     service = GoogleApis.authenticate_and_build_google_service(
         service_name=GOOGLE_SERVICES['gmail'],
         scopes=[SCOPES["modify"], SCOPES["readonly"]],
@@ -61,12 +80,17 @@ def count_daily_received_unread_messages() -> None:
     today = date.today().strftime('%Y/%m/%d')
     tomorrow = (date.today() + timedelta(days=1)).strftime('%Y/%m/%d')
     yesterday = (date.today() - timedelta(days=1)).strftime('%Y/%m/%d')
-    yesterday = str(Utils.get_time_zoned_epoch_datetime(f'{yesterday} 23:59:59')).replace(".0", "")
-    tomorrow = str(Utils.get_time_zoned_epoch_datetime(f'{tomorrow} 00:00:00')).replace(".0", "")
+    yesterday = str(Utils.get_time_zoned_epoch_datetime(
+        f'{yesterday} 23:59:59')).replace(".0", "")
+    tomorrow = str(Utils.get_time_zoned_epoch_datetime(
+        f'{tomorrow} 00:00:00')).replace(".0", "")
+    search_query = f'after:{yesterday} before:{tomorrow}'
 
+    # Step [2]: Fetch messages based on criteria (search_query and labels_ids)
     while page_token is not None:
         response = messages.list(
-            search_query=f'after:{yesterday} before:{tomorrow}', # label:(INBOX AND UNREAD)
+            search_query=search_query,
+            # label:(INBOX AND UNREAD)
             label_ids=['INBOX', 'UNREAD'],
             max_results=MAX_MESSAGE_RESULTS,
             pageToken=page_token
@@ -74,16 +98,13 @@ def count_daily_received_unread_messages() -> None:
         messages_list = response.get('messages', [])
         total_messages_unread += len(messages_list)
         page_token = response.get('nextPageToken', None)
-        # print("Next Page Token:", page_token)
-        # print("Messages:", messages_list)
-        # print("Number of messages found (partial batch):", len(messages_list))
-    
+
     page_token = '0'
-    
+
+    # Step [3]: Fetch messages based on criteria (search_query and labels_ids)
     while page_token is not None:
         response = messages.list(
-            search_query=f'after:{yesterday} before:{tomorrow}', # label:(INBOX AND UNREAD)
-            # label_ids=['INBOX'],
+            search_query=search_query,
             max_results=MAX_MESSAGE_RESULTS,
             pageToken=page_token
         )
@@ -92,9 +113,13 @@ def count_daily_received_unread_messages() -> None:
         page_token = response.get('nextPageToken', None)
 
     print("Total messages received today", today, ":", total_messages)
-    print("Total unread messages received today", today, ":", total_messages_unread)
+    print("Total unread messages received today",
+          today, ":", total_messages_unread)
+    print(f"API Query: {search_query}")
+
 
 def count_inbox_unread_messages() -> None:
+    # Step [1]: Get the Google API Gmail service instance
     service = GoogleApis.authenticate_and_build_google_service(
         service_name=GOOGLE_SERVICES['gmail'],
         scopes=[SCOPES["readonly"]],
@@ -105,10 +130,12 @@ def count_inbox_unread_messages() -> None:
     messages = GmailUsers(service).messages
     page_token = None
     total_messages = 0
-    
+    batches_processed = 0
+
+    # Step [2]: Fetch messages based on criteria
     while page_token is not None or total_messages == 0:
         response = messages.list(
-            # search_query='label:(INBOX AND UNREAD)',
+            # equivalent to: search_query='label:(INBOX and UNREAD)',
             label_ids=['INBOX', 'UNREAD'],
             max_results=MAX_MESSAGE_RESULTS,
             pageToken=page_token
@@ -116,9 +143,14 @@ def count_inbox_unread_messages() -> None:
         messages_list = response.get('messages', [])
         total_messages += len(messages_list)
         page_token = response.get('nextPageToken', None)
+        batches_processed += 1
         print("Next Page Token:", page_token)
         print("Number of messages found (partial batch):", len(messages_list))
-    print("Total unread messages in INBOX:", total_messages)
+
+    # Step [3]: Print total unread messaged
+    print(f"Batches processed (times {MAX_MESSAGE_RESULTS} results per batch):", batches_processed)
+    print("Total unread messages on INBOX:", total_messages)
+
 
 def scrap_rappi_label(
     search_query: str,
@@ -218,8 +250,9 @@ def scrap_rappi_label(
             ".", f" {header_date_year}").strip()), "%d %B %Y %I:%M %p") if "." in date else date
         comments1 = soup.select(selector_normal['comments1'])[0].text.strip()
         comments2 = soup.select(selector_normal['comments2'])[0].text.strip()
-        bank = 'Banregio' # @TODO: Extract bank from comments or other data in the email, currently hardcoded as Banregio for all transactions
-        mean_of_payment = 'Tarjeta de Crédito' # @TODO: Extract mean of payment from comments or other data in the email, currently hardcoded as Tarjeta de Crédito for all transactions
+        bank = 'Banregio'  # @TODO: Extract bank from comments or other data in the email, currently hardcoded as Banregio for all transactions
+        # @TODO: Extract mean of payment from comments or other data in the email, currently hardcoded as Tarjeta de Crédito for all transactions
+        mean_of_payment = 'Tarjeta de Crédito'
 
         if print_message_log:
             print("Amount:", amount)
@@ -272,7 +305,11 @@ def scrap_rappi_label(
         )
 
 
-def scrap_didi_label(search_query: str, label_ids: list = None) -> None:
+def scrap_didi_label(
+    search_query: str,
+    label_ids: list = None,
+    mark_as_read_emails: bool = False,
+) -> None:
     # Step [1]: Get the Google API Gmail service instance
     service = GoogleApis.authenticate_and_build_google_service(
         service_name=GOOGLE_SERVICES['gmail'],
@@ -307,18 +344,19 @@ def scrap_didi_label(search_query: str, label_ids: list = None) -> None:
     print("Processing messages...", messages_list)
 
     # Step [3]: Mark processed emails as Read and remove from Inbox
-    messages.batchModify(
-        userId='me',
-        body={
-            # A list of label IDs to remove from messages.
-            "removeLabelIds": ["INBOX", "UNREAD"],
-            # The IDs of the messages to modify. There is a limit of 1000 ids per request.
-            "ids": message_ids,
-            "addLabelIds": [  # A list of label IDs to add to messages.
-                "Label_3919000443246267002",
-            ],
-        }
-    ).execute()
+    if mark_as_read_emails:
+        messages.batchModify(
+            userId='me',
+            body={
+                # A list of label IDs to remove from messages.
+                "removeLabelIds": ["INBOX", "UNREAD"],
+                # The IDs of the messages to modify. There is a limit of 1000 ids per request.
+                "ids": message_ids,
+                "addLabelIds": [  # A list of label IDs to add to messages.
+                    "Label_3919000443246267002",
+                ],
+            }
+        )
 
     # Step [4]: Save processed emails ids to file
     # @TODO: Manage with a DB instead
@@ -389,7 +427,8 @@ def scrap_didi_label(search_query: str, label_ids: list = None) -> None:
     Utils.write_json_file(json_str=json_string,
                           filename='./secrets/most-recent-query.json')
     Utils.copy_to_clipboard(json_string)
-    
+
+
 def export_message_html_to_file_by_message_id(file_path: str, message_id: str) -> None:
     service = GoogleApis.authenticate_and_build_google_service(
         service_name=GOOGLE_SERVICES['gmail'],
@@ -403,10 +442,12 @@ def export_message_html_to_file_by_message_id(file_path: str, message_id: str) -
         id=message_id,
         format="full"
     ).execute()
-    html_content = message['payload'].get("parts")[0].get("body", {}).get("data", '').encode('UTF8') if message['payload'].get("parts") else message['payload'].get('body', {}).get('data', '').encode('UTF8')
+    html_content = message['payload'].get("parts")[0].get("body", {}).get("data", '').encode(
+        'UTF8') if message['payload'].get("parts") else message['payload'].get('body', {}).get('data', '').encode('UTF8')
     soup: BeautifulSoup = Utils.get_html_document(html_content)
     Utils.export_html_to_file(file_path=file_path, html_content=html_content)
-    print(f"HTML content of message with ID {message_id} has been exported to {file_path}")
+    print(
+        f"HTML content of message with ID {message_id} has been exported to {file_path}")
 
 
 def write_labels_to_json_file(

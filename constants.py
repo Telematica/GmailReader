@@ -55,8 +55,11 @@ ES_TO_EN_MONTHS = {
     "dic": "December",
 }
 QUERIES = {
+    # System Labels
     'label:promotions or category:promotions after:2025/12/31',
     'label:social or category:social after:2025/12/31',
+    
+    #DiDi
     'after:2026/01/31 before:2026/02/28 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
     'after:2025/12/31 before:2026/02/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
     'after:2025/11/30 before:2026/01/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
@@ -64,13 +67,15 @@ QUERIES = {
     'after:2025/09/30 before:2025/11/01 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")',
     'after:1756706399 before:1759298400 subject:("your express trip" OR "your set your fare trip" OR "your cancelled express trip")', # 2025/08/31 00:00:00 - 2025/10/01 00:00:00
     
-    
+    #Rappi/Pedidos
     'after:1735711199 before:1767247200 label:rappi-pedidos', # 2024/12/31 23:59:59 - 2026/01/01 00:00:00
     'after:1767247199 before:1798783200 label:rappi-pedidos', # 2025/12/31 23:59:59 - 2027/01/01 00:00:00
-
-    'after:1735711199 before:1767247200 label:INBOX has:nouserlabels', # 2025/12/31 23:59:59 - 2027/01/01 00:00:00
-    'after:1767247199 before:1798783200 label:INBOX has:nouserlabels', # 2025/12/31 23:59:59 - 2027/01/01 00:00:00
-    
     'after:1767247199 before:1769925600 label:rappi-pedidos', # 2025/12/31 23:59:59 - 2026/02/01 00:00:00
     'after:1769925599 before:1772344800 label:rappi-pedidos', # 2026/01/31 23:59:59 - 2026/03/01 00:00:00
+
+    
+    'after:1672552799 before:1704088800 label:inbox has:nouserlabels', # 2022/12/31 23:59:59 - 2024/01/01 00:00:00
+    'after:1704088799 before:1735711200 label:inbox has:nouserlabels', # 2023/01/01 23:59:59 - 2025/01/01 00:00:00
+    'after:1735711199 before:1767247200 label:INBOX has:nouserlabels', # 2024/12/31 23:59:59 - 2026/01/01 00:00:00
+    'after:1767247199 before:1798783200 label:INBOX has:nouserlabels', # 2025/12/31 23:59:59 - 2027/01/01 00:00:00
 }
